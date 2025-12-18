@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student Attendance System (Login + OTP)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    font-family: "Segoe UI", Arial, sans-serif;
+    min-height:100vh;
+    background: linear-gradient(135deg,#667eea,#764ba2);
+    background-size: 400% 400%;
+    animation: gradientBG 10s ease infinite;
+    padding:20px;
+}
+
+@keyframes gradientBG{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.25);
+}
+
+h1,h2{text-align:center;color:#333}
+
+input,select,button{
+    padding:10px;
+    width:240px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+button{
+    background:#28a745;
+    color:white;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+}
+button:hover{background:#218838}
+
+.secondary{
+    background:#007bff;
+}
+.secondary:hover{background:#0056b3}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+}
+th,td{
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+}
+th{
+    background:#4e73df;
+    color:white;
+}
+
+.good{color:green;font-weight:bold}
+.warn{color:#ff9800;font-weight:bold}
+.low{color:red;font-weight:bold}
+
+.center{text-align:center}
+.hidden{display:none}
+
+.notice{
+    background:#f8f9fa;
+    padding:10px;
+    border-left:5px solid #007bff;
+    margin-top:10px;
+    font-weight:bold;
+}
+
+.card{
+    border:1px solid #ddd;
+    border-radius:10px;
+    padding:15px;
+    margin-top:20px;
+    background:#fafafa;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div class="container" id="loginBox">
+<h1>Student Login</h1>
+<div class="center">
+<input id="rollInput" placeholder="Enter Roll Number"><br><br>
+<button onclick="sendOTP()">Send OTP</button><br><br>
+
+<div id="otpSection" class="hidden">
+<input id="otpInput" placeholder="Enter OTP"><br><br>
+<button onclick="verifyOTP()">Verify & Login</button>
+</div>
+
+<p id="otpMsg"></p>
+</div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="container hidden" id="studentDashboard">
+<h1>Welcome, <span id="studentName"></span></h1>
+<p class="center"><b>Roll No:</b> <span id="studentRoll"></span></p>
+
+<table>
+<thead>
+<tr>
+<th>Subject</th>
+<th>Attended</th>
+<th>Total</th>
+<th>Attendance %</th>
+<th>Status</th>
+<th>Classes Needed</th>
+</tr>
+</thead>
+<tbody id="studentTable"></tbody>
+</table>
+
+<div id="overallMsg" class="notice"></div>
+
+<!-- SELF ATTENDANCE SECTION -->
+<div class="card">
+<h2>Mark Your Attendance</h2>
+<div class="center">
+<select id="subjectSelect"></select><br><br>
+<button class="secondary" onclick="markPresent()">Mark Present (Today)</button>
+<p id="markMsg"></p>
+</div>
+<p style="font-size:14px;color:#555">
+⚠️ Demo feature: In real systems, attendance is verified by faculty / QR / GPS.
+</p>
+</div>
+
+<div class="center">
+<br>
+<button onclick="logout()">Logout</button>
+</div>
+</div>
+
+<script>
+/* ---------------- DATA ---------------- */
+let subjects=["Maths","Physics","Chemistry","DSA","DBMS"];
+let students=[];
+let names=["Aarav","Mehak","Rahul","Ayesha","Rohit","Sneha"];
+let branches=["CSE","ECE","EEE"];
+
+/* Roll Number Format: 24HM1A3001 onwards */
+let rollCounter = 3000;
+
+/* Generate Dummy Students (24HM1A3001 to 24HM1A3099) */
+for(let i=1;i<=99;i++){
+    let s={
+        roll:"24HM1A"+(3000+i),
+        name:names[Math.floor(Math.random()*names.length)],
+        branch:branches[Math.floor(Math.random()*branches.length)],
+        subjects:{},
+        attendanceLog:{}
+    };
+    subjects.forEach(sub=>{
+        let total=Math.floor(Math.random()*15)+35; // 35–50
+        let attended=Math.floor(Math.random()*(total-10))+10;
+        s.subjects[sub]={total,attended};
+        s.attendanceLog[sub]=[];
+    });
+    students.push(s);
+}
+
+/* ---------------- OTP SYSTEM ---------------- */
+let generatedOTP=null;
+let otpExpiry=null;
+let currentStudent=null;
+
+function sendOTP(){
+    let rollNo=rollInput.value.trim();
+    currentStudent=students.find(s=>s.roll===rollNo);
+
+    if(!currentStudent){
+        otpMsg.innerHTML="<span class='low'>Roll number not found</span>";
+        return;
+    }
+
+    generatedOTP=Math.floor(100000+Math.random()*900000);
+    otpExpiry=Date.now()+2*60*1000;
+
+    otpSection.classList.remove("hidden");
+    otpMsg.innerHTML=`<b>Demo OTP:</b> ${generatedOTP} (Valid for 2 minutes)`;
+}
+
+function verifyOTP(){
+    if(Date.now()>otpExpiry){
+        otpMsg.innerHTML="<span class='low'>OTP Expired</span>";
+        return;
+    }
+    if(otpInput.value.trim()!=generatedOTP){
+        otpMsg.innerHTML="<span class='low'>Invalid OTP</span>";
+        return;
+    }
+    loginSuccess();
+}
+
+/* ---------------- LOGIN SUCCESS ---------------- */
+function loginSuccess(){
+    loginBox.classList.add("hidden");
+    studentDashboard.classList.remove("hidden");
+
+    studentName.innerText=currentStudent.name;
+    studentRoll.innerText=currentStudent.roll;
+
+    loadSubjects();
+    renderTable();
+}
+
+function loadSubjects(){
+    subjectSelect.innerHTML="";
+    subjects.forEach(s=>{
+        let opt=document.createElement("option");
+        opt.value=s;
+        opt.textContent=s;
+        subjectSelect.appendChild(opt);
+    });
+}
+
+function renderTable(){
+    studentTable.innerHTML="";
+    let totalNeed=0;
+
+    subjects.forEach(sub=>{
+        let d=currentStudent.subjects[sub];
+        let percent=(d.attended/d.total)*100;
+
+        let status,cls;
+        if(percent>=75){status="Safe";cls="good";}
+        else if(percent>=65){status="Warning";cls="warn";}
+        else{status="Critical";cls="low";}
+
+        let required = Math.max(
+            0,
+            Math.ceil((0.75*d.total - d.attended)/0.25)
+        );
+
+        totalNeed+=required;
+
+        studentTable.innerHTML+=`
+        <tr>
+            <td>${sub}</td>
+            <td>${d.attended}</td>
+            <td>${d.total}</td>
+            <td>${percent.toFixed(2)}%</td>
+            <td class="${cls}">${status}</td>
+            <td>${required}</td>
+        </tr>`;
+    });
+
+    overallMsg.innerHTML =
+        totalNeed>0
+        ? `📌 <b>You must attend at least ${totalNeed} more classes to maintain 75% attendance.</b>`
+        : `✅ <b>Excellent! You are safe in all subjects.</b>`;
+}
+
+/* ---------------- SELF MARK ATTENDANCE ---------------- */
+function markPresent(){
+    let sub=subjectSelect.value;
+    let today=new Date().toLocaleDateString();
+
+    if(currentStudent.attendanceLog[sub].includes(today)){
+        markMsg.innerHTML="<span class='warn'>Attendance already marked for today.</span>";
+        return;
+    }
+
+    currentStudent.subjects[sub].attended++;
+    currentStudent.subjects[sub].total++;
+    currentStudent.attendanceLog[sub].push(today);
+
+    markMsg.innerHTML="<span class='good'>Attendance marked successfully!</span>";
+    renderTable();
+}
+
+/* ---------------- LOGOUT ---------------- */
+function logout(){
+    studentDashboard.classList.add("hidden");
+    loginBox.classList.remove("hidden");
+    rollInput.value="";
+    otpInput.value="";
+    otpMsg.innerHTML="";
+    markMsg.innerHTML="";
+    otpSection.classList.add("hidden");
+    generatedOTP=null;
+}
+</script>
+
+</body>
+</html>
